@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Courier New', monospace;
-            padding: 20px;
+            padding: 20px 40px;
             background-color: #f5f5f5;
         }
 
@@ -325,7 +325,14 @@
 
         /* Print styles */
         @media print {
-            body {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            html, body {
+                width: 100%;
+                height: auto;
                 background-color: white;
                 padding: 0;
                 margin: 0;
@@ -333,14 +340,15 @@
 
             .container {
                 box-shadow: none;
-                padding: 0.2in;
+                padding: 0.25in;
                 max-width: 100%;
+                width: 100%;
                 min-height: auto;
                 margin: 0;
             }
 
             .controls {
-                display: none;
+                display: none !important;
             }
 
             .section {
@@ -364,7 +372,7 @@
 
             @page {
                 size: letter;
-                margin: 0.3in;
+                margin: 0.4in;
             }
         }
     </style>
@@ -604,11 +612,15 @@
                 <div class="instructions">
                     <h4>AUTHENTICATION PROCEDURES:</h4>
                     <ol>
-                        <li><strong>DRYAD CIPHER:</strong> To encode a numeral, select ANY row letter and transmit that letter followed by the character in the numeral's column. Example: To send "5" using row B, transmit "B" + character in column 5.</li>
-                        <li><strong>CHALLENGE/RESPONSE:</strong> Challenger transmits challenge code for current time period. Responder must reply with correct response code.</li>
-                        <li><strong>RUNNING CODES:</strong> Use sequentially for message authentication. Cross off each code after use. Never reuse codes.</li>
-                        <li><strong>DURESS CODES:</strong> Transmit ONLY if under duress/compromised. Receipt of duress code indicates operator is compromised - initiate appropriate response.</li>
-                        <li><strong>SECURITY:</strong> Destroy sheet upon expiration or compromise. Do not transmit sheet ID over unsecure channels.</li>
+                        <li><strong>DRYAD NUMERAL CIPHER:</strong> To encode a digit, select any row letter and transmit that letter followed by the character in the digit's column.<br>
+                        <em>Example:</em> To send "5" using row C, say: <strong>"CHARLIE [character in column 5 of row C]"</strong><br>
+                        To encode "372" using rows A, B, D: <strong>"ALPHA [col 3] - BRAVO [col 7] - DELTA [col 2]"</strong></li>
+                        <li><strong>CHALLENGE FORMAT:</strong> "AUTHENTICATE [ROW LETTER] [COLUMN NUMBER]"<br>
+                        <em>Example:</em> <strong>"AUTHENTICATE BRAVO FIVE"</strong> — Responder replies with the character at row B, column 5.</li>
+                        <li><strong>DURESS CODES:</strong> Memorize your assigned codes. Transmit ONLY if under duress or compromised. Use naturally in conversation.<br>
+                        <em>Example:</em> If your duress code is FALCON: <strong>"Request FALCON support at grid..."</strong><br>
+                        Receipt of a duress code indicates the operator is compromised — initiate appropriate response protocols.</li>
+                        <li><strong>SECURITY:</strong> Destroy this sheet upon expiration or if compromise is suspected. Never transmit the Sheet ID over unsecure channels. Protect as ${classification}.</li>
                     </ol>
                 </div>
                 ` : ''}
