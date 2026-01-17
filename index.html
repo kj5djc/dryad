@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRYAD Authentication System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .controls {
+            max-width: 8.5in;
+            margin: 0 auto 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border: 2px solid #333;
+        }
+
+        .controls h2 {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .control-group input, .control-group select {
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+
+        .control-group input[type="text"] {
+            width: 200px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 2px solid #333;
+            background-color: white;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #333;
+            color: white;
+        }
+
+        .controls button.primary {
+            background-color: #333;
+            color: white;
+        }
+
+        .controls button.primary:hover {
+            background-color: #555;
+        }
+
+        .container {
+            max-width: 8.5in;
+            min-height: 11in;
+            margin: 0 auto;
+            background-color: white;
+            padding: 0.4in;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            border: 3px double #000;
+            padding: 10px;
+        }
+
+        .header .classification {
+            font-size: 14px;
+            font-weight: bold;
+            color: #c00;
+            margin-bottom: 5px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+
+        .header .subtitle {
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            border-top: 1px solid #000;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .header-info div {
+            text-align: left;
+        }
+
+        .section {
+            margin-bottom: 12px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 11px;
+            background-color: #000;
+            color: #fff;
+            padding: 4px 8px;
+            margin-bottom: 6px;
+        }
+
+        /* Main DRYAD Grid */
+        .dryad-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 10px;
+        }
+
+        .dryad-table th, .dryad-table td {
+            border: 1px solid #000;
+            padding: 3px 2px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .dryad-table th {
+            background-color: #333;
+            color: white;
+        }
+
+        .dryad-table .row-header {
+            background-color: #333;
+            color: white;
+            width: 25px;
+        }
+
+        .dryad-table td {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
+        /* Authentication Table */
+        .auth-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .auth-table th, .auth-table td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            text-align: center;
+        }
+
+        .auth-table th {
+            background-color: #555;
+            color: white;
+            font-size: 9px;
+        }
+
+        .auth-table td {
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* Duress Section */
+        .duress-section {
+            background-color: #fff0f0;
+            border: 2px solid #c00;
+            padding: 8px;
+        }
+
+        .duress-section .section-title {
+            background-color: #c00;
+        }
+
+        .duress-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            font-size: 10px;
+        }
+
+        .duress-item {
+            border: 1px solid #c00;
+            padding: 5px;
+            text-align: center;
+            background-color: #fff;
+        }
+
+        .duress-item .duress-label {
+            font-size: 8px;
+            color: #666;
+            display: block;
+        }
+
+        .duress-item .duress-code {
+            font-weight: bold;
+            font-size: 12px;
+            color: #c00;
+        }
+
+        /* Time Period Grid */
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            font-size: 9px;
+        }
+
+        .time-block {
+            border: 1px solid #333;
+            padding: 4px;
+            text-align: center;
+            background-color: #f9f9f9;
+        }
+
+        .time-block .time-label {
+            font-size: 7px;
+            color: #666;
+            display: block;
+        }
+
+        .time-block .time-code {
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        /* Running Codes */
+        .running-codes {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 3px;
+            font-size: 9px;
+        }
+
+        .running-code {
+            border: 1px solid #666;
+            padding: 3px;
+            text-align: center;
+            background-color: #fff;
+        }
+
+        .running-code .rc-num {
+            font-size: 7px;
+            color: #999;
+            display: block;
+        }
+
+        .running-code .rc-data {
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .footer {
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 2px solid #000;
+            font-size: 8px;
+            text-align: center;
+        }
+
+        .footer .classification {
+            font-weight: bold;
+            color: #c00;
+            font-size: 12px;
+        }
+
+        .instructions {
+            font-size: 8px;
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+        }
+
+        .instructions h4 {
+            margin-bottom: 5px;
+        }
+
+        .instructions ol {
+            margin-left: 15px;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                margin: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0.2in;
+                max-width: 100%;
+                min-height: auto;
+                margin: 0;
+            }
+
+            .controls {
+                display: none;
+            }
+
+            .section {
+                margin-bottom: 8px;
+            }
+
+            .header {
+                margin-bottom: 10px;
+                padding: 8px;
+            }
+
+            .footer {
+                margin-top: 10px;
+                padding-top: 5px;
+            }
+
+            .instructions {
+                margin-top: 8px;
+                padding: 5px;
+            }
+
+            @page {
+                size: letter;
+                margin: 0.3in;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>DRYAD SHEET CONFIGURATION</h2>
+        <div class="control-row">
+            <div class="control-group">
+                <label>UNIT DESIGNATION:</label>
+                <input type="text" id="unitDesignation" value="ALPHA-1" placeholder="Unit ID">
+            </div>
+            <div class="control-group">
+                <label>NET CALL SIGN:</label>
+                <input type="text" id="netCallSign" value="THUNDER" placeholder="Net Call Sign">
+            </div>
+            <div class="control-group">
+                <label>CLASSIFICATION:</label>
+                <select id="classification">
+                    <option value="UNCLASSIFIED">UNCLASSIFIED</option>
+                    <option value="CONFIDENTIAL">CONFIDENTIAL</option>
+                    <option value="SECRET" selected>SECRET</option>
+                    <option value="TOP SECRET">TOP SECRET</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>VALID PERIOD:</label>
+                <select id="validPeriod">
+                    <option value="24">24 Hours</option>
+                    <option value="48">48 Hours</option>
+                    <option value="72" selected>72 Hours</option>
+                    <option value="168">7 Days</option>
+                </select>
+            </div>
+        </div>
+        <div class="control-row">
+            <div class="control-group">
+                <label>DRYAD ROWS (A-Z):</label>
+                <select id="dryadRows">
+                    <option value="10">10 Rows (A-J)</option>
+                    <option value="16">16 Rows (A-P)</option>
+                    <option value="20">20 Rows (A-T)</option>
+                    <option value="26" selected>26 Rows (A-Z)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>DURESS CODES:</label>
+                <select id="duressCodeCount">
+                    <option value="4" selected>4 Codes</option>
+                    <option value="6">6 Codes</option>
+                    <option value="8">8 Codes</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>INCLUDE INSTRUCTIONS:</label>
+                <select id="includeInstructions">
+                    <option value="yes" selected>Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="primary" onclick="generateSheet()">GENERATE NEW SHEET</button>
+            <button onclick="window.print()">PRINT SHEET</button>
+        </div>
+    </div>
+
+    <div class="container" id="sheetContainer">
+        <!-- Sheet content will be generated here -->
+    </div>
+
+    <script>
+        // Cryptographically secure random
+        function getSecureRandom(max) {
+            const array = new Uint32Array(1);
+            window.crypto.getRandomValues(array);
+            return array[0] % max;
+        }
+
+        function getRandomChar() {
+            return String.fromCharCode(65 + getSecureRandom(26));
+        }
+
+        function getRandomDigit() {
+            return getSecureRandom(10).toString();
+        }
+
+        function getRandomAlphaNum() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            return chars[getSecureRandom(chars.length)];
+        }
+
+        function generateSheetId() {
+            let id = '';
+            for (let i = 0; i < 4; i++) {
+                id += getRandomAlphaNum();
+            }
+            id += '-';
+            for (let i = 0; i < 4; i++) {
+                id += getRandomAlphaNum();
+            }
+            return id;
+        }
+
+        function generateCode(length) {
+            let code = '';
+            for (let i = 0; i < length; i++) {
+                code += getRandomAlphaNum();
+            }
+            return code;
+        }
+
+        // Generate DRYAD numeral substitution grid
+        function generateDryadGrid(rows) {
+            const grid = [];
+            for (let r = 0; r < rows; r++) {
+                const row = [];
+                // Create shuffled digits 0-9 for each row
+                const digits = '0123456789'.split('');
+                for (let i = digits.length - 1; i > 0; i--) {
+                    const j = getSecureRandom(i + 1);
+                    [digits[i], digits[j]] = [digits[j], digits[i]];
+                }
+                // Assign random letters to each digit position
+                for (let c = 0; c < 10; c++) {
+                    row.push(getRandomChar());
+                }
+                grid.push(row);
+            }
+            return grid;
+        }
+
+        function formatDate(date) {
+            const day = date.getDate().toString().padStart(2, '0');
+            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                          'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const mins = date.getMinutes().toString().padStart(2, '0');
+            return `${day}${month}${year} ${hours}${mins}Z`;
+        }
+
+        function generateSheet() {
+            const unit = document.getElementById('unitDesignation').value || 'ALPHA-1';
+            const netCall = document.getElementById('netCallSign').value || 'THUNDER';
+            const classification = document.getElementById('classification').value;
+            const validPeriod = parseInt(document.getElementById('validPeriod').value);
+            const dryadRows = parseInt(document.getElementById('dryadRows').value);
+            const duressCount = parseInt(document.getElementById('duressCodeCount').value);
+            const includeInstr = document.getElementById('includeInstructions').value === 'yes';
+
+            const now = new Date();
+            const expiry = new Date(now.getTime() + validPeriod * 60 * 60 * 1000);
+            const sheetId = generateSheetId();
+
+            // Generate DRYAD grid
+            const dryadGrid = generateDryadGrid(dryadRows);
+
+            // Generate duress codes using real words
+            const duressTypes = [
+                'COMPROMISE', 'UNDER DURESS', 'ABORT MISSION', 'EVACUATE',
+                'HOSTAGE', 'CAPTURED', 'WOUNDED', 'NEED EXTRACT'
+            ];
+            const duressWords = [
+                'FALCON', 'GRANITE', 'COPPER', 'TIMBER', 'COBALT', 'MARBLE', 'IRON', 'BRONZE',
+                'SILVER', 'PHANTOM', 'SUMMIT', 'ANCHOR', 'ARCTIC', 'VIPER', 'RAPTOR', 'SPARROW',
+                'CARDINAL', 'OSPREY', 'CONDOR', 'RAVEN', 'MUSTANG', 'JAGUAR', 'PANTHER', 'TIGER'
+            ];
+            // Shuffle the words
+            for (let i = duressWords.length - 1; i > 0; i--) {
+                const j = getSecureRandom(i + 1);
+                [duressWords[i], duressWords[j]] = [duressWords[j], duressWords[i]];
+            }
+            const duressCodes = [];
+            for (let i = 0; i < duressCount; i++) {
+                duressCodes.push({
+                    type: duressTypes[i],
+                    code: duressWords[i]
+                });
+            }
+
+            // Build HTML
+            let html = `
+                <div class="header">
+                    <div class="classification">${classification}</div>
+                    <h1>RADIO AUTHENTICATION AND VERIFICATION SHEET</h1>
+                    <div class="header-info">
+                        <div>
+                            <strong>SHEET ID:</strong> ${sheetId}<br>
+                            <strong>UNIT:</strong> ${unit}
+                        </div>
+                        <div>
+                            <strong>NET:</strong> ${netCall}<br>
+                            <strong>EDITION:</strong> ${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${sheetId.substring(0,4)}
+                        </div>
+                        <div>
+                            <strong>DTG VALID:</strong> ${formatDate(now)}<br>
+                            <strong>DTG EXPIRES:</strong> ${formatDate(expiry)}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">DRYAD NUMERAL CIPHER (USE ROW LETTER + COLUMN DIGIT TO ENCODE)</div>
+                    <table class="dryad-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                ${[0,1,2,3,4,5,6,7,8,9].map(n => `<th>${n}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${dryadGrid.map((row, idx) => `
+                                <tr>
+                                    <td class="row-header">${String.fromCharCode(65 + idx)}</td>
+                                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section duress-section">
+                    <div class="section-title">⚠ DURESS / EMERGENCY CODES (MEMORIZE - DO NOT TRANSMIT UNLESS COMPROMISED)</div>
+                    <div class="duress-grid">
+                        ${duressCodes.map(dc => `
+                            <div class="duress-item">
+                                <span class="duress-label">${dc.type}</span>
+                                <span class="duress-code">${dc.code}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                ${includeInstr ? `
+                <div class="instructions">
+                    <h4>AUTHENTICATION PROCEDURES:</h4>
+                    <ol>
+                        <li><strong>DRYAD CIPHER:</strong> To encode a numeral, select ANY row letter and transmit that letter followed by the character in the numeral's column. Example: To send "5" using row B, transmit "B" + character in column 5.</li>
+                        <li><strong>CHALLENGE/RESPONSE:</strong> Challenger transmits challenge code for current time period. Responder must reply with correct response code.</li>
+                        <li><strong>RUNNING CODES:</strong> Use sequentially for message authentication. Cross off each code after use. Never reuse codes.</li>
+                        <li><strong>DURESS CODES:</strong> Transmit ONLY if under duress/compromised. Receipt of duress code indicates operator is compromised - initiate appropriate response.</li>
+                        <li><strong>SECURITY:</strong> Destroy sheet upon expiration or compromise. Do not transmit sheet ID over unsecure channels.</li>
+                    </ol>
+                </div>
+                ` : ''}
+
+                <div class="footer">
+                    <div class="classification">${classification}</div>
+                    DESTROY BY: ${formatDate(expiry)} • SHEET ${sheetId} • UNAUTHORIZED DISCLOSURE SUBJECT TO PENALTIES
+                </div>
+            `;
+
+            document.getElementById('sheetContainer').innerHTML = html;
+        }
+
+        // Generate on load
+        generateSheet();
+    </script>
+</body>
+</html>
