@@ -446,14 +446,6 @@
                 </select>
             </div>
             <div class="control-group">
-                <label>DURESS CODES:</label>
-                <select id="duressCodeCount">
-                    <option value="4" selected>4 Codes</option>
-                    <option value="6">6 Codes</option>
-                    <option value="8">8 Codes</option>
-                </select>
-            </div>
-            <div class="control-group">
                 <label>INCLUDE INSTRUCTIONS:</label>
                 <select id="includeInstructions">
                     <option value="yes" selected>Yes</option>
@@ -549,7 +541,6 @@
             const classification = document.getElementById('classification').value;
             const validPeriod = parseInt(document.getElementById('validPeriod').value);
             const dryadRows = parseInt(document.getElementById('dryadRows').value);
-            const duressCount = parseInt(document.getElementById('duressCodeCount').value);
             const includeInstr = document.getElementById('includeInstructions').value === 'yes';
 
             const now = new Date();
@@ -558,29 +549,6 @@
 
             // Generate DRYAD grid
             const dryadGrid = generateDryadGrid(dryadRows);
-
-            // Generate duress codes using real words
-            const duressTypes = [
-                'COMPROMISE', 'UNDER DURESS', 'ABORT MISSION', 'EVACUATE',
-                'HOSTAGE', 'CAPTURED', 'WOUNDED', 'NEED EXTRACT'
-            ];
-            const duressWords = [
-                'FALCON', 'GRANITE', 'COPPER', 'TIMBER', 'COBALT', 'MARBLE', 'IRON', 'BRONZE',
-                'SILVER', 'PHANTOM', 'SUMMIT', 'ANCHOR', 'ARCTIC', 'VIPER', 'RAPTOR', 'SPARROW',
-                'CARDINAL', 'OSPREY', 'CONDOR', 'RAVEN', 'MUSTANG', 'JAGUAR', 'PANTHER', 'TIGER'
-            ];
-            // Shuffle the words
-            for (let i = duressWords.length - 1; i > 0; i--) {
-                const j = getSecureRandom(i + 1);
-                [duressWords[i], duressWords[j]] = [duressWords[j], duressWords[i]];
-            }
-            const duressCodes = [];
-            for (let i = 0; i < duressCount; i++) {
-                duressCodes.push({
-                    type: duressTypes[i],
-                    code: duressWords[i]
-                });
-            }
 
             // Build HTML
             let html = `
@@ -623,18 +591,6 @@
                     </table>
                 </div>
 
-                <div class="section duress-section">
-                    <div class="section-title">⚠ DURESS / EMERGENCY CODES (MEMORIZE - DO NOT TRANSMIT UNLESS COMPROMISED)</div>
-                    <div class="duress-grid">
-                        ${duressCodes.map(dc => `
-                            <div class="duress-item">
-                                <span class="duress-label">${dc.type}</span>
-                                <span class="duress-code">${dc.code}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
                 ${includeInstr ? `
                 <div class="instructions">
                     <h4>AUTHENTICATION PROCEDURES:</h4>
@@ -644,9 +600,6 @@
                         To encode "372" using rows A, B, D: <strong>"ALPHA [col 3] - BRAVO [col 7] - DELTA [col 2]"</strong></li>
                         <li><strong>CHALLENGE FORMAT:</strong> "AUTHENTICATE [ROW LETTER] [COLUMN NUMBER]"<br>
                         <em>Example:</em> <strong>"AUTHENTICATE BRAVO FIVE"</strong> — Responder replies with the character at row B, column 5.</li>
-                        <li><strong>DURESS CODES:</strong> Memorize your assigned codes. Transmit ONLY if under duress or compromised. Use naturally in conversation.<br>
-                        <em>Example:</em> If your duress code is FALCON: <strong>"Request FALCON support at grid..."</strong><br>
-                        Receipt of a duress code indicates the operator is compromised — initiate appropriate response protocols.</li>
                         <li><strong>SECURITY:</strong> Destroy this sheet upon expiration or if compromise is suspected. Never transmit the Sheet ID over unsecure channels. Protect as ${classification}.</li>
                     </ol>
                 </div>
