@@ -595,16 +595,14 @@
                 <div class="instructions">
                     <h4>AUTHENTICATION PROCEDURES:</h4>
                     <ol>
-                        <li><strong>DRYAD NUMERAL CIPHER:</strong> To encode a digit, select any row letter and transmit that letter followed by the character in the digit's column.<br>
-                        <em>Example:</em> To send "5" using row C, say: <strong>"CHARLIE [character in column 5 of row C]"</strong><br>
-                        To encode "372" using rows A, B, D: <strong>"ALPHA [col 3] - BRAVO [col 7] - DELTA [col 2]"</strong></li>
                         <li><strong>CHALLENGE FORMAT:</strong> "AUTHENTICATE [ROW LETTER] [COLUMN NUMBER]"<br>
-                        <em>Example:</em> <strong>"AUTHENTICATE BRAVO FIVE"</strong> — Responder replies with the character at row B, column 5.</li>
+                        <em>Example:</em> <strong>"AUTHENTICATE BRAVO FIVE"</strong>"</li>
+                        <li><strong>RESPONSE FORMAT:</strong> "I AUTHENTICATE [CHARACTER AT ROW LETTER / COLUMN NUMBER]"<br>
+                        <em>Example:</em> <strong>"AUTHENTICATE ALPHA"</strong>"</li>
                         <li><strong>SECURITY:</strong> Destroy this sheet upon expiration or if compromise is suspected. Never transmit the Sheet ID over unsecure channels. Protect as ${classification}.</li>
                     </ol>
                 </div>
                 ` : ''}
-
                 <div class="footer">
                     <div class="classification">${classification}</div>
                     DESTROY BY: ${formatDate(expiry)} • SHEET ${sheetId} • UNAUTHORIZED DISCLOSURE SUBJECT TO PENALTIES
