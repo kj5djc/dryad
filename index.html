@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DRYAD Authenticator Sheet Generator</title>
+<style>
+  /* ---- design tokens (mirrors the shared design system) ---- */
+  :root {
+    --gray-50:#f9fafb;  --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+    --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151;
+    --gray-900:#111827;
+    --indigo-50:#eef2ff; --indigo-100:#e0e7ff; --indigo-600:#4f46e5;
+    --indigo-700:#4338ca; --indigo-800:#3730a3;
+    --amber-50:#fffbeb; --amber-200:#fde68a; --amber-800:#92400e;
+    --radius-lg:.5rem;   --radius-xl:.75rem;  --radius-full:9999px;
+    --shadow-sm:0 1px 2px 0 rgb(0 0 0 / .05);
+    --shadow-md:0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+    --shadow-lg:0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "Courier New", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+    /* Envelope geometry — a #10 fed short edge first. The face is printed
+       straight onto the envelope, so the padding is not taste: it is the
+       unprintable strip every inkjet and laser reserves at the paper edge,
+       widest on the two feed edges. Screen and print read these same values,
+       so the preview is dimensionally the thing that comes out of the tray. */
+    --env-w: 4.125in;  --env-h: 9.5in;
+    --env-pad-y: .45in; --env-pad-x: .4in;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    background: var(--gray-50);
+    color: var(--gray-700);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- app chrome ---- */
+  .container { max-width: 80rem; margin: 0 auto; padding: 0 1rem; width: 100%; }
+  @media (min-width: 640px) { .container { padding: 0 1.5rem; } }
+  @media (min-width: 1024px) { .container { padding: 0 2rem; } }
+
+  nav {
+    background:#fff; border-bottom:1px solid var(--gray-200);
+    position: sticky; top:0; z-index:10;
+  }
+  .nav-inner { display:flex; align-items:center; justify-content:space-between; gap:1rem; height:4rem; flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:.625rem; font-weight:700; color:var(--gray-900); font-size:.9375rem; letter-spacing:.01em; }
+  .brand-mark {
+    display:flex; align-items:center; justify-content:center;
+    height:1.75rem; width:1.75rem; border-radius:var(--radius-full);
+    background:var(--indigo-100); color:var(--indigo-700);
+    font-size:.6875rem; font-weight:700; font-family:var(--mono);
+  }
+  .nav-meta { font-size:.75rem; color:var(--gray-400); font-family:var(--mono); }
+
+  main { flex:1; padding:2rem 0; }
+
+  h1 { font-size:1.5rem; font-weight:600; color:var(--gray-900); margin:0 0 .375rem; letter-spacing:-.01em; }
+  .lede { color:var(--gray-500); margin:0 0 1.5rem; }
+
+  .card {
+    background:#fff; border:1px solid var(--gray-200);
+    border-radius:var(--radius-xl); box-shadow:var(--shadow-sm);
+  }
+  .card-body { padding:1.25rem; }
+  @media (min-width:640px) { .card-body { padding:1.5rem; } }
+
+  .controls { display:grid; grid-template-columns:1fr; gap:1rem 1.25rem; }
+  @media (min-width:640px) { .controls { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (min-width:1024px) { .controls { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+  .field { min-width:0; }
+  /* Seed takes two of the four columns, so it shares the row with year and
+     designator; on the 2-column layout it spans the full width instead. */
+  .field.span-2 { grid-column: span 1; }
+  @media (min-width:640px) { .field.span-2 { grid-column: span 2; } }
+
+  label { display:block; font-size:.875rem; font-weight:500; color:var(--gray-700); margin-bottom:.25rem; }
+  .hint { font-size:.75rem; color:var(--gray-400); margin-top:.375rem; }
+  input[type=text], input[type=number], select {
+    display:block; width:100%; border:1px solid var(--gray-300);
+    border-radius:var(--radius-lg); padding:.5rem .75rem;
+    font-size:.875rem; font-family:inherit; color:var(--gray-900);
+    background:#fff; box-shadow:var(--shadow-sm);
+  }
+  input:focus, select:focus {
+    outline:none; border-color:var(--indigo-600);
+    box-shadow:0 0 0 1px var(--indigo-600);
+  }
+  input.mono { font-family:var(--mono); }
+
+  .actions { display:flex; flex-wrap:wrap; gap:.625rem; margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--gray-200); }
+  button {
+    display:inline-flex; align-items:center; gap:.5rem;
+    border-radius:var(--radius-lg); padding:.625rem 1.25rem;
+    font-size:.875rem; font-weight:600; font-family:inherit;
+    cursor:pointer; border:none; box-shadow:var(--shadow-sm);
+    transition:background-color .15s, box-shadow .15s, color .15s;
+  }
+  button:focus-visible { outline:none; box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--indigo-600); }
+  .btn-primary { background:var(--indigo-600); color:#fff; }
+  .btn-primary:hover { background:var(--indigo-700); }
+  .btn-primary:active { background:var(--indigo-800); }
+  .btn-secondary { background:#fff; color:var(--gray-700); box-shadow:inset 0 0 0 1px var(--gray-300), var(--shadow-sm); }
+  .btn-secondary:hover { background:var(--gray-50); }
+
+  .notice {
+    display:flex; gap:.625rem; align-items:flex-start;
+    background:var(--amber-50); border:1px solid var(--amber-200);
+    color:var(--amber-800); border-radius:var(--radius-lg);
+    padding:.75rem .875rem; font-size:.8125rem; margin-top:1.25rem;
+  }
+  .notice b { font-weight:600; }
+  .notice.error { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+  .notice[hidden] { display:none; }
+  button[disabled] { opacity:.6; cursor:progress; }
+
+  /* Equal side tracks put the heading in the true centre of the card width,
+     independent of how wide the summary pill grows. */
+  .section-head {
+    display:grid; grid-template-columns:1fr auto 1fr; align-items:baseline;
+    gap:1rem; margin:2rem 0 .75rem;
+  }
+  .section-head h2 {
+    grid-column:2; text-align:center;
+    font-size:1rem; font-weight:600; color:var(--gray-900); margin:0;
+  }
+  .section-head .pill { grid-column:3; justify-self:end; }
+  /* Too narrow for three tracks — stack and centre both. */
+  @media (max-width:640px) {
+    .section-head { grid-template-columns:1fr; gap:.5rem; justify-items:center; }
+    .section-head h2, .section-head .pill { grid-column:1; justify-self:center; }
+  }
+  .pill {
+    display:inline-flex; align-items:center; gap:.375rem;
+    border-radius:var(--radius-full); font-size:.75rem; font-weight:600;
+    padding:.125rem .625rem; background:var(--indigo-100); color:var(--indigo-700);
+    font-family:var(--mono);
+  }
+
+  /* ---- the document itself ---- */
+  .sheet-scroll { overflow-x:auto; padding-bottom:.5rem; }
+  .sheet {
+    background:#fff; color:#000;
+    font-family:var(--mono);
+    border:1px solid var(--gray-200);
+    border-radius:var(--radius-xl);
+    box-shadow:var(--shadow-md);
+    padding:1.5rem 1.75rem;
+    /* Auto side margins centre the sheet when the viewport is wider than it is;
+       they collapse to zero once it overflows and .sheet-scroll takes over. */
+    margin:0 auto 1.5rem;
+    width:64rem; max-width:100%;
+    font-size:9.5px; line-height:1.42;
+  }
+  .fouo {
+    text-align:center; font-weight:700; letter-spacing:.18em;
+    font-size:10px; text-transform:uppercase;
+  }
+  .sheet-head {
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:2rem; margin:.75rem 0 1.25rem;
+  }
+  .sheet-title { text-align:right; letter-spacing:.08em; }
+  .sheet-title .t1 { font-weight:700; }
+  .sheet-id { letter-spacing:.08em; }
+
+  .months { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.5rem 2rem; }
+  .month { break-inside:avoid; }
+  .month-name { text-align:center; letter-spacing:.14em; margin-bottom:.75rem; white-space:nowrap; }
+  .col-heads { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:.375rem; }
+  .col-heads span { letter-spacing:.1em; }
+  .rows { display:grid; grid-template-columns:1fr 1fr; gap:0 1rem; }
+  .col { display:block; }
+  .row { white-space:nowrap; }
+  .row .num { display:inline-block; width:1.5em; text-align:right; margin-right:.5em; }
+
+  .sheet-foot {
+    margin-top:1.25rem; display:grid; align-items:end; gap:2rem;
+    grid-template-columns:1fr auto 1fr;
+  }
+  .sheet-foot .page { letter-spacing:.08em; }
+
+  /* ---- envelope face (#10, held portrait: 4.125in x 9.5in) ---- */
+  .env-wrap { display:flex; justify-content:center; }
+  .envelope {
+    width:var(--env-w); height:var(--env-h);
+    background:#fff; color:#000;
+    font-family:var(--sans);
+    /* The one type knob: every size below is em-relative, so fitEnvelope()
+       can shrink the whole face by moving this single value. */
+    font-size:8pt; line-height:1.32;
+    padding:var(--env-pad-y) var(--env-pad-x);
+    /* Outline rather than border — it marks the envelope edge on screen
+       without taking a pixel out of the box the print run measures. */
+    outline:1px dashed var(--gray-300);
+    border-radius:2px;
+    box-shadow:var(--shadow-md);
+    margin-bottom:1.5rem;
+    display:flex; flex-direction:column;
+  }
+  .env-title { font-size:1.9em; font-weight:700; line-height:1.05; letter-spacing:-.01em; }
+  .env-effective { font-size:1em; font-weight:700; margin:.05in 0 .09in .28in; }
+  .env-fouo { font-size:1.6em; font-weight:700; letter-spacing:-.01em; margin-bottom:.12in; }
+  .env-h { text-align:center; font-size:1.06em; font-weight:700; letter-spacing:.06em; margin:.06in 0 .07in; }
+  .env-step { display:grid; grid-template-columns:1.35em 1fr; margin-bottom:.08in; }
+  .env-step .n { font-weight:700; }
+  .env-step p { margin:0; text-align:justify; }
+  .env-step p + p { margin-top:.04in; }
+  .env-step .lead { font-weight:700; }
+  .env-caps { font-weight:700; }
+  .env-table { width:100%; border-collapse:collapse; font-weight:700; font-size:1em; margin:.02in 0 .1in; }
+  .env-table th { font-weight:700; text-align:left; padding:0 0 .03in; letter-spacing:.02em; }
+  .env-table td { padding:0; white-space:nowrap; }
+  .env-table .m { padding-right:.5em; }
+  .env-table .y { padding-right:1.1em; }
+  .env-table .act { padding-right:.9em; }
+  .env-note { margin:.02in 0 0; font-weight:700; }
+  .env-spacer { flex:1; min-height:.06in; }
+  .env-caption { text-align:center; font-size:.75rem; color:var(--gray-400); font-family:var(--sans); margin:0 0 1.5rem; }
+
+  footer { border-top:1px solid var(--gray-200); background:#fff; margin-top:auto; }
+  footer p { text-align:center; font-size:.8125rem; color:var(--gray-400); padding:1.5rem 0; margin:0; }
+
+  .no-print { }
+
+  /* ---- print ---- */
+  @page { size: letter portrait; margin: 0.4in; }
+  @media print {
+    body { background:#fff; }
+    nav, footer, .no-print { display:none !important; }
+    main { padding:0; }
+    .container { max-width:none; padding:0; }
+    .sheet-scroll { overflow:visible; padding:0; }
+    .sheet {
+      width:auto; max-width:none; margin:0; padding:0;
+      border:none; border-radius:0; box-shadow:none;
+      font-size:7pt; line-height:1.26;
+      break-after:page; page-break-after:always;
+    }
+    .sheet:last-child { break-after:auto; page-break-after:auto; }
+    .fouo { font-size:7.5pt; }
+    .sheet-head { margin:.4rem 0 .7rem; }
+    .months { gap:.9rem 1.4rem; }
+
+    /* Envelope face on its own letter page — a proof sheet, so the envelope
+       edge stays visible as a faint outline. */
+    .env-wrap { display:block; }
+    .envelope {
+      margin:0 auto; box-shadow:none; outline:1px dashed #bbb;
+      break-before:page; page-break-before:always;
+      break-inside:avoid; page-break-inside:avoid;
+    }
+
+    /* "Print envelope only" — the page box IS the envelope, and the safe area
+       is carried by the @page margin (written by printEnvelopeOnly from the
+       same --env-pad-* tokens). Padding therefore drops to zero here: keeping
+       it would inset the content twice. */
+    html.envelope-only .sheet { display:none !important; }
+    html.envelope-only .envelope {
+      /* Height stays elastic so overflowing text can't be clipped. The floor is
+         only there to keep the closing note pushed toward the bottom when there
+         is spare room; it sits well under what fitEnvelope() leaves the content,
+         so it can never itself be what forces a second page. */
+      width:100%; height:auto; min-height:8in;
+      outline:none; padding:0;
+      break-before:auto; page-break-before:auto;
+    }
+  }
+</style>
+<!-- Rewritten by script when printing the envelope on its own page size. -->
+<style id="page-rule"></style>
+</head>
+<body>
+
+<nav class="no-print">
+  <div class="container">
+    <div class="nav-inner">
+      <div class="brand">
+        <span class="brand-mark">DA</span>
+        DRYAD Authenticator Sheet Generator
+      </div>
+      <span class="nav-meta">runs entirely offline &middot; no data leaves this page</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <div class="no-print">
+      <h1>Authenticator sheet</h1>
+      <p class="lede">
+        Generates a full twelve-month authenticator list &mdash; an AUTHENTICATE and a VERIFICATION
+        word pair for every day of every month &mdash; laid out as a two-sided fold sheet ready to print.
+        Everything is derived from the seed with PBKDF2 and HMAC-SHA-256, so the same seed and
+        year always reproduce the identical sheet on any machine, while nobody without the seed
+        can predict any of it.
+      </p>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="controls">
+            <div class="field">
+              <label for="year">Year</label>
+              <!-- value is filled in with the current year at startup -->
+              <input type="number" id="year" min="1900" max="2999" step="1">
+            </div>
+
+            <div class="field">
+              <label for="designator">List designator</label>
+              <input type="text" id="designator" class="mono" maxlength="6" value="AH" autocomplete="off">
+              <p class="hint">Edition ID printed in the header.</p>
+            </div>
+
+            <div class="field span-2">
+              <label for="seed">Seed</label>
+              <input type="text" id="seed" class="mono" autocomplete="off" spellcheck="false">
+              <p class="hint">This is the key. Anyone holding it reproduces this exact sheet; nobody
+              without it can predict a single pair. Prefer <b>Random seed</b> over a phrase you
+              thought up, and protect it like the sheet itself.</p>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn-primary" id="generate">Generate sheet</button>
+            <button type="button" class="btn-secondary" id="random">Random seed</button>
+            <button type="button" class="btn-secondary" id="print">Print all / Save PDF</button>
+            <button type="button" class="btn-secondary" id="print-envelope">Print envelope only</button>
+            <button type="button" class="btn-secondary" id="download">Download .txt</button>
+          </div>
+
+          <div class="notice error" id="error" hidden></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head no-print">
+      <h2>Preview</h2>
+      <span class="pill" id="summary">&mdash;</span>
+    </div>
+
+    <div class="sheet-scroll" id="output"></div>
+
+  </div>
+</main>
+
+<footer class="no-print">
+  <div class="container">
+    <p>Single-file offline app &middot; nothing is transmitted, stored, or logged</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // 1988-era NATO/ICAO spelling alphabet, as printed on the original lists.
+  var WORDS = [
+    'ALFA', 'BRAVO', 'CHARLIE', 'DELTA', 'ECHO', 'FOXTROT', 'GOLF', 'HOTEL',
+    'INDIA', 'JULIETT', 'KILO', 'LIMA', 'MIKE', 'NOVEMBER', 'OSCAR', 'PAPA',
+    'QUEBEC', 'ROMEO', 'SIERRA', 'TANGO', 'UNIFORM', 'VICTOR', 'WHISKEY',
+    'XRAY', 'YANKEE', 'ZULU'
+  ];
+
+  var MONTHS = [
+    'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+  ];
+
+  var MONTHS_SHORT = [
+    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+  ];
+
+  var MONTHS_PER_SHEET = 6;
+
+  var el = {
+    year: document.getElementById('year'),
+    designator: document.getElementById('designator'),
+    seed: document.getElementById('seed'),
+    output: document.getElementById('output'),
+    summary: document.getElementById('summary'),
+    pageRule: document.getElementById('page-rule'),
+    generate: document.getElementById('generate'),
+    error: document.getElementById('error')
+  };
+
+  // ---- key derivation and keystream ---------------------------------------
+  //
+  // The sheet must be reproducible from the seed yet unpredictable without it,
+  // which is exactly what a keyed PRF gives: PBKDF2 stretches the seed into a
+  // 256-bit key, and HMAC-SHA-256 in counter mode expands that key into the
+  // word stream. Observing part of a sheet reveals nothing about the rest.
+
+  var PBKDF2_ITERATIONS = 600000;   // OWASP's PBKDF2-HMAC-SHA-256 guidance
+  var BLOCK_BYTES = 32;             // SHA-256 output
+  var BATCH_BLOCKS = 64;            // 2 KB of keystream per refill
+
+  function utf8(text) {
+    return new TextEncoder().encode(text);
+  }
+
+  function hasWebCrypto() {
+    return typeof crypto !== 'undefined' && !!crypto.subtle &&
+      typeof crypto.subtle.deriveBits === 'function';
+  }
+
+  // Stretching does not make a guessable seed safe — it only raises the cost of
+  // each guess from nothing to ~50ms. Seed entropy is what carries the security.
+  async function deriveKey(seedText, year) {
+    var base = await crypto.subtle.importKey(
+      'raw', utf8(seedText), 'PBKDF2', false, ['deriveBits']);
+    var bits = await crypto.subtle.deriveBits({
+      name: 'PBKDF2',
+      salt: utf8('authenticator-list|v1|' + year),
+      iterations: PBKDF2_ITERATIONS,
+      hash: 'SHA-256'
+    }, base, 256);
+    return crypto.subtle.importKey(
+      'raw', bits, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  }
+
+  // Each label is an independent stream off the same key, so the daily words,
+  // the envelope's test words, and the designator never disturb one another.
+  async function createByteSource(hmacKey, label) {
+    var buf = new Uint8Array(0);
+    var pos = 0;
+    var counter = 0;
+
+    async function refill() {
+      var jobs = [];
+      for (var i = 0; i < BATCH_BLOCKS; i++, counter++) {
+        jobs.push(crypto.subtle.sign('HMAC', hmacKey, utf8(label + '|' + counter)));
+      }
+      var blocks = await Promise.all(jobs);
+      buf = new Uint8Array(blocks.length * BLOCK_BYTES);
+      blocks.forEach(function (block, index) {
+        buf.set(new Uint8Array(block), index * BLOCK_BYTES);
+      });
+      pos = 0;
+    }
+
+    return {
+      next: async function next() {
+        if (pos >= buf.length) await refill();
+        return buf[pos++];
+      }
+    };
+  }
+
+  // 256 is not a multiple of 26, so the top 22 byte values are discarded rather
+  // than folded in — taking a raw byte modulo 26 would over-weight A through V.
+  function makeSampler(alphabetLength) {
+    var limit = alphabetLength * Math.floor(256 / alphabetLength);
+    return async function sample(source) {
+      for (;;) {
+        var byte = await source.next();
+        if (byte < limit) return byte % alphabetLength;
+      }
+    };
+  }
+
+  var sampleWord = makeSampler(WORDS.length);
+  var sampleLetter = makeSampler(26);
+
+  // ---- calendar -----------------------------------------------------------
+
+  function isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  }
+
+  function daysInMonth(year, monthIndex) {
+    var lengths = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return lengths[monthIndex];
+  }
+
+  // ---- generation ---------------------------------------------------------
+
+  async function drawPair(source, used, allowSameWord) {
+    // 650 distinct two-different-word pairs exist; a month needs at most 62.
+    for (var attempt = 0; attempt < 5000; attempt++) {
+      var a = WORDS[await sampleWord(source)];
+      var b = WORDS[await sampleWord(source)];
+      if (a === b && !allowSameWord) continue;
+      var key = a + ' ' + b;
+      if (used[key]) continue;
+      used[key] = true;
+      return key;
+    }
+    throw new Error('Unable to draw a unique word pair');
+  }
+
+  async function generateYear(hmacKey, year) {
+    var daily = await createByteSource(hmacKey, 'daily-words');
+    var months = [];
+    var m;
+
+    for (m = 0; m < 12; m++) {
+      // Uniqueness is scoped per month: no pair repeats within a month, across
+      // both the activation and termination columns.
+      var used = Object.create(null);
+      var total = daysInMonth(year, m);
+      var days = [];
+      for (var d = 1; d <= total; d++) {
+        days.push({
+          day: d,
+          activation: await drawPair(daily, used, false),
+          termination: await drawPair(daily, used, false)
+        });
+      }
+      months.push({ index: m, name: MONTHS[m], short: MONTHS_SHORT[m], days: days, used: used });
+    }
+
+    // The envelope's test authenticator words: one pair per month, drawn from a
+    // separate stream so the daily list above is unaffected by their existence.
+    // They must not collide with any real pair in that month, or a test word
+    // would authenticate as a live one. Unlike the daily list these may pair a
+    // word with itself (the originals show e.g. ROMEO ROMEO).
+    var testSource = await createByteSource(hmacKey, 'test-words');
+    for (m = 0; m < 12; m++) {
+      var month = months[m];
+      month.test = {
+        activation: await drawPair(testSource, month.used, true),
+        termination: await drawPair(testSource, month.used, true)
+      };
+      delete month.used;
+    }
+
+    return months;
+  }
+
+  async function deriveDesignator(hmacKey) {
+    var source = await createByteSource(hmacKey, 'designator');
+    var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    return letters[await sampleLetter(source)] + letters[await sampleLetter(source)];
+  }
+
+  // ---- rendering ----------------------------------------------------------
+
+  function elem(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function renderColumn(month, field) {
+    var col = elem('div', 'col');
+    month.days.forEach(function (entry) {
+      var row = elem('div', 'row');
+      row.appendChild(elem('span', 'num', String(entry.day)));
+      row.appendChild(document.createTextNode(entry[field]));
+      col.appendChild(row);
+    });
+    return col;
+  }
+
+  function renderMonth(month, year) {
+    var wrap = elem('div', 'month');
+    wrap.appendChild(elem('div', 'month-name', month.name + ' ' + year));
+
+    var heads = elem('div', 'col-heads');
+    heads.appendChild(elem('span', null, 'AUTHENTICATE'));
+    heads.appendChild(elem('span', null, 'VERIFICATION'));
+    wrap.appendChild(heads);
+
+    var rows = elem('div', 'rows');
+    rows.appendChild(renderColumn(month, 'activation'));
+    rows.appendChild(renderColumn(month, 'termination'));
+    wrap.appendChild(rows);
+
+    return wrap;
+  }
+
+  function renderSheet(months, year, designator, sheetNumber, sheetCount) {
+    var sheet = elem('div', 'sheet');
+
+    sheet.appendChild(elem('div', 'fouo', 'For Official Use Only'));
+
+    var head = elem('div', 'sheet-head');
+    head.appendChild(elem('div', 'sheet-id', 'SHEET ' + sheetNumber + ' OF ' + sheetCount));
+    var title = elem('div', 'sheet-title');
+    title.appendChild(elem('div', 't1', 'AUTHENTICATOR LIST  ' + designator));
+    title.appendChild(elem('div', null, MONTHS[months[0].index] + ' – ' +
+      MONTHS[months[months.length - 1].index] + ' ' + year));
+    head.appendChild(title);
+    sheet.appendChild(head);
+
+    var grid = elem('div', 'months');
+    months.forEach(function (month) {
+      grid.appendChild(renderMonth(month, year));
+    });
+    sheet.appendChild(grid);
+
+    var foot = elem('div', 'sheet-foot');
+    foot.appendChild(elem('div', 'page', 'EDITION ' + designator));
+    foot.appendChild(elem('div', 'fouo', 'For Official Use Only'));
+    foot.appendChild(elem('div', 'page', ''));
+    sheet.appendChild(foot);
+
+    return sheet;
+  }
+
+  // ---- envelope face ------------------------------------------------------
+
+  function renderStep(number, blocks) {
+    var step = elem('div', 'env-step');
+    step.appendChild(elem('div', 'n', number + '.'));
+    var body = elem('div');
+    blocks.forEach(function (block) {
+      var p = elem('p', block.className || null);
+      if (block.lead) {
+        p.appendChild(elem('span', 'env-caps', block.lead));
+        p.appendChild(document.createTextNode(block.text || ''));
+      } else {
+        p.textContent = block.text;
+      }
+      body.appendChild(p);
+    });
+    step.appendChild(body);
+    return step;
+  }
+
+  function renderTestTable(months, year) {
+    var table = elem('table', 'env-table');
+
+    var thead = document.createElement('thead');
+    var headRow = document.createElement('tr');
+    headRow.appendChild(elem('th', 'm', ''));
+    headRow.appendChild(elem('th', 'y', ''));
+    headRow.appendChild(elem('th', 'act', 'AUTHENTICATE'));
+    headRow.appendChild(elem('th', null, 'VERIFICATION'));
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    months.forEach(function (month) {
+      var row = document.createElement('tr');
+      row.appendChild(elem('td', 'm', month.short));
+      row.appendChild(elem('td', 'y', String(year)));
+      row.appendChild(elem('td', 'act', month.test.activation));
+      row.appendChild(elem('td', null, month.test.termination));
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+
+    return table;
+  }
+
+  function renderEnvelope(months, year) {
+    var env = elem('div', 'envelope');
+
+    env.appendChild(elem('div', 'env-title', 'RACES Authenticator List'));
+
+    env.appendChild(elem('div', 'env-effective',
+      'Effective Jan through Dec ' + year));
+    env.appendChild(elem('div', 'env-fouo', 'For Official Use Only'));
+
+    env.appendChild(elem('div', 'env-h', 'INSTRUCTIONS'));
+
+    env.appendChild(renderStep(1, [{
+      text: 'DO NOT OPEN UNTIL NEEDED TO AUTHENTICATE ACTUAL EMERGENCY MESSAGES.',
+      className: 'env-caps'
+    }]));
+
+    env.appendChild(renderStep(2, [
+      { text: 'FOR ACTUAL EMERGENCY MESSAGES:', className: 'env-caps' },
+      { text: 'Note the authentication words received in the message, e.g., ALFA GOLF. ' +
+              'Open this envelope, proceed down the column of the current month to ' +
+              'the appropriate day noted in the message and compare the words received ' +
+              'in the message against the Authenticator List. If they match, you have ' +
+              'an authentic message.' },
+      { text: 'If they do not match, do not act on the message and do not relay it. ' +
+              'Report it to Net Control and to your Radio Officer or Emergency ' +
+              'Coordinator.' }
+    ]));
+
+    env.appendChild(renderStep(3, [
+      { text: 'FOR TEST MESSAGES:', className: 'env-caps' },
+      { text: 'TEST AUTHENTICATOR WORDS ARE LISTED BELOW.', className: 'env-caps' },
+      { text: 'Note the authentication words received in the message, e.g., ' +
+              months[0].test.termination + '. Compare the test authenticator words and ' +
+              'the month received in the message against the words listed below. If they ' +
+              'match, you have an authentic test message.' }
+    ]));
+
+    env.appendChild(elem('div', 'env-h', 'TEST AUTHENTICATOR WORDS'));
+    env.appendChild(renderTestTable(months, year));
+
+    env.appendChild(renderStep(4, [{
+      lead: 'RACES Members',
+      text: '—Keep this envelope sealed and stow it in your go-kit or station ' +
+            'binder at your assigned operating position, and bring it to every ' +
+            'activation, drill and exercise. It authenticates activation, ' +
+            'termination and test traffic passed on RACES nets by your served ' +
+            'agency, by Net Control, or by your Radio Officer or Emergency ' +
+            'Coordinator.'
+    }]));
+
+    env.appendChild(renderStep(5, [{
+      lead: 'Accountability',
+      text: '—This list is issued to you personally. Do not copy, photograph, ' +
+            'or read any part of it over the air. Report a lost, damaged or ' +
+            'prematurely opened envelope to your Radio Officer at once so the ' +
+            'edition can be replaced, and destroy the sheet once it is ' +
+            'superseded or expired.'
+    }]));
+
+    env.appendChild(elem('div', 'env-spacer'));
+    env.appendChild(elem('p', 'env-note',
+      '(NET CONTROL STATIONS Place this envelope in the pocket of your RACES SOPs.)'));
+
+    return env;
+  }
+
+  // The face prints straight onto the envelope, so anything past the safe area
+  // is lost — there is no second page for it to spill onto. Rather than trust a
+  // hand-tuned type size to hold for every year and every draw of test words,
+  // measure the laid-out face and step the size down until it demonstrably fits.
+
+  var ENV_BASE_PT = 8;
+  var ENV_MIN_PT = 6.4;   // below this the face stops being readable at arm's length
+  var CSS_PX_PER_IN = 96; // fixed by the CSS spec, independent of the device
+
+  // A print dialog is free to ignore the @page margin and substitute the
+  // driver's own, which on envelope stock is often larger. That bites on both
+  // axes: a shorter page has less room, and a narrower one rewraps the
+  // justified text into more lines, making the face taller than it measured at
+  // the nominal width. So the fit is judged against a page this much tighter on
+  // every edge — a driver that overshoots by up to this much still yields one
+  // envelope instead of two.
+  var ENV_MARGIN_TOLERANCE_IN = 0.15;
+
+  // The elastic spacer stretches to push the closing note to the bottom of the
+  // face, so the last block's position says nothing about how tall the content
+  // actually is. Collapse the spacer, narrow the box to the worst case, and
+  // measure the natural height — then put everything back.
+  function envNaturalHeight(env, squeezePx) {
+    var spacer = env.querySelector('.env-spacer');
+    var prevHeight = env.style.height;
+    var prevWidth = env.style.width;
+    var prevFlex = spacer ? spacer.style.flex : '';
+
+    var cs = getComputedStyle(env);
+    // Padding is declared in inches, so narrowing the box leaves it untouched.
+    var padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+
+    env.style.height = 'auto';
+    env.style.width = (env.getBoundingClientRect().width - squeezePx * 2) + 'px';
+    if (spacer) spacer.style.flex = '0 0 auto';
+
+    var natural = env.getBoundingClientRect().height - padY;
+
+    env.style.height = prevHeight;
+    env.style.width = prevWidth;
+    if (spacer) spacer.style.flex = prevFlex;
+    return natural;
+  }
+
+  // Every size on the face is em-relative, so the whole thing scales off this
+  // one property. Must run with the node already in the document.
+  function fitEnvelope(env) {
+    var cs = getComputedStyle(env);
+    var squeeze = ENV_MARGIN_TOLERANCE_IN * CSS_PX_PER_IN;
+    var available = env.getBoundingClientRect().height -
+      parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - squeeze * 2;
+
+    var size = ENV_BASE_PT;
+    env.style.fontSize = size + 'pt';
+    while (size > ENV_MIN_PT && envNaturalHeight(env, squeeze) > available) {
+      size = Math.round((size - 0.1) * 10) / 10;
+      env.style.fontSize = size + 'pt';
+    }
+    return { size: size, overflow: envNaturalHeight(env, squeeze) - available };
+  }
+
+  // ---- plain-text export --------------------------------------------------
+
+  function toText(months, year, designator) {
+    var lines = [];
+    lines.push('FOR OFFICIAL USE ONLY');
+    lines.push('');
+    lines.push('AUTHENTICATOR LIST  ' + designator + '   ' + year);
+    lines.push('');
+    lines.push('TEST AUTHENTICATOR WORDS');
+    lines.push('  MONTH  AUTHENTICATE          VERIFICATION');
+    months.forEach(function (month) {
+      var act = month.test.activation;
+      while (act.length < 20) act += ' ';
+      lines.push('  ' + month.short + '    ' + act + '  ' + month.test.termination);
+    });
+    lines.push('');
+
+    months.forEach(function (month) {
+      lines.push(month.name + ' ' + year);
+      lines.push('  DAY  AUTHENTICATE          VERIFICATION');
+      month.days.forEach(function (entry) {
+        var day = String(entry.day);
+        while (day.length < 3) day = ' ' + day;
+        var act = entry.activation;
+        while (act.length < 20) act += ' ';
+        lines.push('  ' + day + '  ' + act + '  ' + entry.termination);
+      });
+      lines.push('');
+    });
+
+    lines.push('FOR OFFICIAL USE ONLY');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  // ---- state --------------------------------------------------------------
+
+  var current = null;
+  var lastAutoDesignator = null;
+
+  function readYear() {
+    var year = parseInt(el.year.value, 10);
+    if (!isFinite(year) || year < 1900 || year > 2999) {
+      year = new Date().getFullYear();
+      el.year.value = String(year);
+    }
+    return year;
+  }
+
+  // Only overwrite the field while it still holds a value we put there —
+  // anything the user typed themselves stays put.
+  function syncDesignator(autoDesignator) {
+    if (el.designator.value.trim() === '' || el.designator.value.trim() === lastAutoDesignator) {
+      el.designator.value = autoDesignator;
+      lastAutoDesignator = autoDesignator;
+    }
+  }
+
+  function setBusy(busy) {
+    el.generate.disabled = busy;
+    el.generate.textContent = busy ? 'Deriving key…' : 'Generate sheet';
+  }
+
+  function showError(message) {
+    el.error.textContent = message;
+    el.error.hidden = false;
+  }
+
+  // Key derivation is async, so a second click can land mid-run; only the newest
+  // run is allowed to publish its result.
+  var runToken = 0;
+
+  async function generate() {
+    var year = readYear();
+    var seedText = el.seed.value;
+    if (seedText.trim() === '') {
+      seedText = randomSeed();
+      el.seed.value = seedText;
+    }
+
+    if (!hasWebCrypto()) {
+      showError('This browser exposes no Web Crypto API, so no sheet can be ' +
+        'derived. Open the file in a current browser, or serve it over ' +
+        'http://localhost instead of double-clicking it.');
+      return;
+    }
+
+    var token = ++runToken;
+    el.error.hidden = true;
+    setBusy(true);
+    try {
+      var hmacKey = await deriveKey(seedText, year);
+      syncDesignator(await deriveDesignator(hmacKey));
+      var designator = el.designator.value.trim().toUpperCase() || 'AA';
+      el.designator.value = designator;
+
+      var months = await generateYear(hmacKey, year);
+      if (token !== runToken) return;
+
+      current = { months: months, year: year, designator: designator, seed: seedText };
+      render();
+    } catch (err) {
+      showError('Could not generate the sheet: ' + (err && err.message ? err.message : err));
+    } finally {
+      if (token === runToken) setBusy(false);
+    }
+  }
+
+  function render() {
+    if (!current) return;
+
+    var sheetCount = Math.ceil(12 / MONTHS_PER_SHEET);
+    var frag = document.createDocumentFragment();
+    for (var s = 0; s < sheetCount; s++) {
+      var slice = current.months.slice(s * MONTHS_PER_SHEET, (s + 1) * MONTHS_PER_SHEET);
+      frag.appendChild(renderSheet(slice, current.year, current.designator, s + 1, sheetCount));
+    }
+
+    var caption = elem('p', 'env-caption no-print',
+      'Envelope face — prints directly on a #10 envelope, 4⅛ × 9½ in, fed short edge first');
+    frag.appendChild(caption);
+    var wrap = elem('div', 'env-wrap');
+    var envelope = renderEnvelope(current.months, current.year);
+    wrap.appendChild(envelope);
+    frag.appendChild(wrap);
+
+    el.output.textContent = '';
+    el.output.appendChild(frag);
+
+    // Only measurable once the envelope is in the document and laid out.
+    var fit = fitEnvelope(envelope);
+    if (fit.size < ENV_BASE_PT) {
+      caption.textContent += ' · type reduced to ' + fit.size.toFixed(1) + 'pt to fit';
+    }
+    if (fit.overflow > 0) {
+      caption.textContent += ' · WARNING: content still overruns the safe area';
+    }
+
+    var dayCount = current.months.reduce(function (sum, m) { return sum + m.days.length; }, 0);
+    el.summary.textContent = current.designator + ' · ' + current.year + ' · ' +
+      dayCount + ' days · ' + (dayCount * 2) + ' pairs';
+    document.title = 'Authenticator List ' + current.designator + ' — ' + current.year;
+  }
+
+  // 25 characters from a 32-symbol alphabet — 125 bits, drawn from the OS CSPRNG.
+  // Deliberately past the point where stretching or guessing matters at all.
+  function randomSeed() {
+    var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var bytes = new Uint8Array(25);
+    crypto.getRandomValues(bytes);
+    var out = '';
+    for (var i = 0; i < bytes.length; i++) {
+      if (i > 0 && i % 5 === 0) out += '-';
+      // The alphabet is 32 symbols, a divisor of 256, so this is unbiased.
+      out += alphabet[bytes[i] % alphabet.length];
+    }
+    return out;
+  }
+
+  function download() {
+    if (!current) return;
+    var text = toText(current.months, current.year, current.designator);
+    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'authenticator-list-' + current.designator + '-' + current.year + '.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  // ---- wiring -------------------------------------------------------------
+
+  // Mixing two page sizes in one print job is unreliable, so the full run keeps
+  // a single letter page box and the envelope-only run swaps it for a #10.
+  // The @page margin is read off the same tokens the preview is laid out from,
+  // so the safe area cannot drift between what is shown and what is printed.
+  function printEnvelopeOnly() {
+    var root = getComputedStyle(document.documentElement);
+    function token(name) { return root.getPropertyValue(name).trim(); }
+    document.documentElement.classList.add('envelope-only');
+    el.pageRule.textContent = '@page { size: ' + token('--env-w') + ' ' +
+      token('--env-h') + '; margin: ' + token('--env-pad-y') + ' ' +
+      token('--env-pad-x') + '; }';
+    window.print();
+  }
+
+  window.addEventListener('afterprint', function () {
+    document.documentElement.classList.remove('envelope-only');
+    el.pageRule.textContent = '';
+  });
+
+  el.generate.addEventListener('click', generate);
+  document.getElementById('print').addEventListener('click', function () { window.print(); });
+  document.getElementById('print-envelope').addEventListener('click', printEnvelopeOnly);
+  document.getElementById('download').addEventListener('click', download);
+  document.getElementById('random').addEventListener('click', function () {
+    el.seed.value = randomSeed();
+    generate();
+  });
+
+  [el.year, el.seed, el.designator].forEach(function (input) {
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        generate();
+      }
+    });
+  });
+
+  // Defaults: the current year, and a fresh random seed. A memorable default
+  // such as "DRYAD-2026" would be the first thing anyone guessed, so every load
+  // starts from a key nobody else holds. Both fields are left blank in the
+  // markup so there is only one source for these values.
+  el.year.value = String(new Date().getFullYear());
+  // The designator field's initial markup value is ours to replace.
+  lastAutoDesignator = 'AH';
+
+  // Checked before seeding, because randomSeed() needs the same crypto object.
+  if (hasWebCrypto()) {
+    el.seed.value = randomSeed();
+    generate();
+  } else {
+    showError('This browser exposes no Web Crypto API, so no sheet can be derived. ' +
+      'Open the file in a current browser, or serve it over http://localhost ' +
+      'instead of double-clicking it.');
+    setBusy(false);
+    el.generate.disabled = true;
+  }
+})();
+</script>
+</body>
+</html>
