@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    image: dryad-sheet:local
+    # Bound to loopback only: the page needs a secure context for Web Crypto
+    # (http://localhost qualifies), and it should not be reachable from the LAN.
+    ports:
+      - "127.0.0.1:${PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
